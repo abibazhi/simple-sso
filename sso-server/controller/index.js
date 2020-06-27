@@ -46,9 +46,14 @@ const appTokenDB = {
 };
 
 const alloweOrigin = {
-  "http://consumer.ankuranand.in:3020": true,
-  "http://consumertwo.ankuranand.in:3030": true,
-  "http://sso.ankuranand.in:3080": false
+  "https://daxumi.cn": true,
+  "http://daxumi.net:3000": true,
+  "http://192.168.124.4:3000": true,
+  "https://daxumi.net:3000": true,
+  // "http://consumertwo.ankuranand.in:3030": true,
+  // "http://consumer.ankuranand.in:3020": true,
+  // "http://consumertwo.ankuranand.in:3030": true,
+  // "http://sso.ankuranand.in:3080": false
 };
 
 const deHyphenatedUUID = () => uuidv4().replace(/-/gi, "");
@@ -60,8 +65,12 @@ const sessionUser = {};
 const sessionApp = {};
 
 const originAppName = {
-  "http://consumer.ankuranand.in:3020": "sso_consumer",
-  "http://consumertwo.ankuranand.in:3030": "simple_sso_consumer"
+  "https://daxumi.cn": "sso_consumer",
+  "http://192.168.124.4:3000": "simple_sso_consumer",
+  "https://daxumi.net:3000": "simple_sso_consumer",
+  "http://daxumi.net:3000": "simple_sso_consumer",
+  // "http://consumer.ankuranand.in:3020": "sso_consumer",
+  // "http://consumertwo.ankuranand.in:3030": "simple_sso_consumer5"
 };
 
 const userDB = {
@@ -91,7 +100,9 @@ const storeApplicationInCache = (origin, id, intrmToken) => {
     sessionApp[id][originAppName[origin]] = true;
     fillIntrmTokenCache(origin, id, intrmToken);
   }
+  console.log('storeApplicationInCache...')
   console.log({ ...sessionApp }, { ...sessionUser }, { intrmTokenCache });
+  console.log('storeApplicationInCache...')
 };
 
 const generatePayload = ssoToken => {
@@ -115,6 +126,7 @@ const generatePayload = ssoToken => {
 };
 
 const verifySsoToken = async (req, res, next) => {
+  console.log('verify begin0...')
   const appToken = appTokenFromRequest(req);
   const { ssoToken } = req.query;
   // if the application token is not present or ssoToken request is invalid
@@ -125,17 +137,22 @@ const verifySsoToken = async (req, res, next) => {
     ssoToken == null ||
     intrmTokenCache[ssoToken] == null
   ) {
+    console.log('verify begin1...400')
     return res.status(400).json({ message: "badRequest" });
   }
 
   // if the appToken is present and check if it's valid for the application
   const appName = intrmTokenCache[ssoToken][1];
   const globalSessionToken = intrmTokenCache[ssoToken][0];
+  console.log('verify begin3...appname:'+appName)
+  console.log('verify begin4...globalSessionToken:'+globalSessionToken)
+
   // If the appToken is not equal to token given during the sso app registraion or later stage than invalid
   if (
     appToken !== appTokenDB[appName] ||
     sessionApp[globalSessionToken][appName] !== true
   ) {
+    console.log('verify begin2...403')
     return res.status(403).json({ message: "Unauthorized" });
   }
   // checking if the token passed has been generated
@@ -178,7 +195,11 @@ const login = (req, res, next) => {
   // direct access will give the error inside new URL.
   if (serviceURL != null) {
     const url = new URL(serviceURL);
+    // console.log(new Date(),(new Error().stack).split('\n')[1]);
+    // console.log(url.origin);
+    // console.log(alloweOrigin[url.origin]);
     if (alloweOrigin[url.origin] !== true) {
+      console.log('没有注册。。。')
       return res
         .status(400)
         .json({ message: "Your are not allowed to access the sso-server" });
